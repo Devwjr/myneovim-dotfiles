@@ -41,7 +41,11 @@ function M.setup(name)
 		return
 	end
 
-	require("koda").setup({
+	local ok, koda = pcall(require, "koda")
+	if not ok or not koda then
+		return
+	end
+	koda.setup({
 		colors = variant_overrides[variant] or {},
 	})
 end

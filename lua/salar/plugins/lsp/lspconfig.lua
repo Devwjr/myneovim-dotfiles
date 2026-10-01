@@ -4,7 +4,7 @@ return {
 	dependencies = {
 		"hrsh7th/cmp-nvim-lsp",
 		{ "antosha417/nvim-lsp-file-operations", config = true },
-		{ "folke/neodev.nvim",                   opts = {} },
+		{ "folke/lazydev.nvim", opts = {}, ft = "lua" },
 	},
 	config = function()
 		local lspconfig = require("lspconfig")
@@ -119,9 +119,6 @@ return {
 		-- ============================
 		-- Language servers
 		-- ============================
-
-		-- TypeScript / TSX
-		local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
 		-- ============================
 		-- TypeScript / TSX (NEW API)

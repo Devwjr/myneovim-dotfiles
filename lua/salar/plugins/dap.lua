@@ -77,7 +77,11 @@ return {
         end
 
         local lldb_dap = vim.fn.exepath("lldb-dap")
+        local mason_bin = vim.fn.stdpath("data") .. "/mason/bin"
         local codelldb = vim.fn.exepath("codelldb")
+        if codelldb == "" then
+            codelldb = mason_bin .. "/codelldb"
+        end
 
         -----------------------------------------------------------------------
         -- Adapter setup
@@ -137,6 +141,156 @@ return {
         dap.configurations.cpp = cpp_configurations
         dap.configurations.c = cpp_configurations
         dap.configurations.rust = cpp_configurations
+
+        -----------------------------------------------------------------------
+        -- Adapters for other languages (resolved via Mason)
+        -----------------------------------------------------------------------
+        local function mason_path(name)
+            local p = mason_bin .. "/" .. name
+            return (is_executable(p) or file_exists(p)) and p or vim.fn.exepath(name)
+        end
+
+        -- Python (debugpy)
+        local python = mason_path("debugpy-adapter")
+        if python ~= "" then
+            dap.adapters.python = {
+                type = "executable",
+                command = python,
+                args = {},
+            }
+            dap.configurations.python = {
+                {
+                    type = "python",
+                    request = "launch",
+                    name = "Launch file",
+                    program = "${file}",
+                    cwd = "${workspaceFolder}",
+                    console = "integratedTerminal",
+                    justMyCode = false,
+                },
+            }
+        end
+
+        -- Go (delve)
+        local go = mason_path("dlv")
+        if go == "" then
+            go = mason_bin .. "/dlv"
+        end
+        if file_exists(go) or go ~= "" and vim.fn.executable(go) == 1 then
+            dap.adapters.dlv = {
+                type = "server",
+                port = "${port}",
+                executable = { command = go, args = { "dap", "-l", "127.0.0.1:${port}" } },
+            }
+            dap.configurations.go = {
+                {
+                    type = "dlv",
+                    request = "launch",
+                    name = "Debug",
+                    program = "${fileDirname}",
+                    cwd = "${workspaceFolder}",
+                },
+            }
+        end
+
+        -- JavaScript / TypeScript (js-debug-adapter via node)
+        local jsd = mason_path("js-debug-adapter")
+        if jsd ~= "" then
+            dap.adapters.node2 = {
+                type = "executable",
+                command = "node",
+                args = { jsd, "${port}" },
+            }
+            dap.configurations.javascript = {
+                {
+                    type = "node2",
+                    request = "launch",
+                    name = "Launch file",
+                    program = "${file}",
+                    cwd = "${workspaceFolder}",
+                },
+            }
+            dap.configurations.typescript = dap.configurations.javascript
+        end
+
+        -- Java (java-debug-adapter via java)
+        local java_jar = vim.fn.stdpath("data")
+            .. "/mason/packages/java-debug-adapter/extension/server/"
+        local java_plugin = vim.fn.stdpath("data")
+            .. "/mason/packages/java-test/extension/server/"
+        local function glob_first(dir, pattern)
+            local glob = vim.fn.glob(vim.fs.joinpath(dir, pattern))
+            if glob ~= "" then
+                return glob, true
+            end
+            return nil, false
+        end
+
+        if file_exists(vim.fn.stdpath("data") .. "/mason/bin/java-debug-adapter") or vim.fn.executable("java") == 1 then
+            local jar, ok_jar = glob_first(java_jar, "*.jar")
+            if ok_jar then
+                local java_cmd = "java"
+                dap.adapters.java = {
+                    type = "executable",
+                    command = java_cmd,
+                    args = {
+                        "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005",
+                        "-jar",
+                        jar,
+                    },
+                }
+                local plugin, ok_plugin = glob_first(java_plugin, "*.jar")
+                local sep = package.config:sub(1, 1) == "\\" and ";" or ":"
+                local args = { "-cp", jar }
+                if ok_plugin then
+                    args = {
+                        "-cp",
+                        vim.fn.join({ jar, plugin }, sep),
+                        "com.microsoft.java.debug.core.Main",
+                    }
+                end
+                dap.configurations.java = {
+                    {
+                        type = "java",
+                        request = "launch",
+                        name = "Debug (Attach) - Remote",
+                        hostName = "127.0.0.1",
+                        port = 5005,
+                    },
+                    {
+                        type = "java",
+                        request = "attach",
+                        name = "Attach to process",
+                        hostName = "127.0.0.1",
+                        port = 5005,
+                    },
+                }
+                _ = args
+            end
+        end
+
+        -- C# / .NET (netcoredbg)
+        local cs = mason_path("netcoredbg")
+        if cs ~= "" then
+            dap.adapters.netcoredbg = {
+                type = "executable",
+                command = cs,
+                args = { "--interpreter=vscode" },
+            }
+            dap.configurations.cs = {
+                {
+                    type = "netcoredbg",
+                    request = "launch",
+                    name = "Launch (netcoredbg)",
+                    program = function()
+                        return vim.fn.input("Path to dll: ", vim.fn.getcwd() .. "/bin/Debug/", "file")
+                    end,
+                    cwd = "${workspaceFolder}",
+                },
+            }
+            dap.configurations.fsharp = dap.configurations.cs
+            dap.configurations.vb = dap.configurations.cs
+        end
 
         -----------------------------------------------------------------------
         -- Keybindings

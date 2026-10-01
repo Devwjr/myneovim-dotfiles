@@ -1,9 +1,10 @@
 return {
 	"hrsh7th/nvim-cmp",
-	event = "InsertEnter",
+	event = { "InsertEnter", "CmdlineEnter" },
 	dependencies = {
 		"hrsh7th/cmp-buffer", -- source for text in buffer
 		"hrsh7th/cmp-path", -- source for file system paths
+		"hrsh7th/cmp-cmdline", -- cmdline suggestions like LazyVim
 		{
 			"L3MON4D3/LuaSnip",
 			version = "v2.*", -- latest release
@@ -51,6 +52,31 @@ return {
 					maxwidth = 50,
 					ellipsis_char = "...",
 				}),
+			},
+		})
+
+		-- cmdline completion like LazyVim (sugestões ao digitar : e / )
+		cmp.setup.cmdline(":", {
+			mapping = cmp.mapping.preset.cmdline(),
+			sources = cmp.config.sources({
+				{ name = "path" },
+			}, {
+				{ name = "cmdline" },
+			}),
+			matching = { disallow_symbol_nonprefix_matching = false },
+		})
+
+		cmp.setup.cmdline("/", {
+			mapping = cmp.mapping.preset.cmdline(),
+			sources = {
+				{ name = "buffer" },
+			},
+		})
+
+		cmp.setup.cmdline("?", {
+			mapping = cmp.mapping.preset.cmdline(),
+			sources = {
+				{ name = "buffer" },
 			},
 		})
 	end,

@@ -31,7 +31,8 @@ return {
 			"graphql",
 			"emmet_ls",
 			"pyright",
-			"clangd",
+			-- clangd usa o do sistema (/usr/bin/clangd 19.1.7) para evitar EEXIST broken symlink
+			-- "clangd",
 			"rust_analyzer",
 		}
 

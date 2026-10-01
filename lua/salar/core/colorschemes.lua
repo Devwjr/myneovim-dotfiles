@@ -102,6 +102,15 @@ M.items = {
 		repo = "RRethy/base16-nvim",
 		schemes = { "base16-default-dark", "base16-default-light" },
 	},
+	{
+		repo = "elvessousa/sobrio",
+		schemes = { "sobrio" },
+	},
+	{
+		repo = "bluz71/vim-moonfly-colors",
+		name = "moonfly",
+		schemes = { "moonfly" },
+	},
 }
 
 function M.names()
